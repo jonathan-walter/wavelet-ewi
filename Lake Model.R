@@ -18,15 +18,20 @@ library(ggplot2)
   m.N = 0.015 # removal rate of nutrients
   h.N = 0.005 # half saturation of nutrients
   h.P = 4.0 # half saturation of phytoplankton
-  I.N = 0.0225 # base input rate of nutrient
-  P.i = 1 # initial concentration of phytoplankton
-  N.i = 0.0025 # initial concentration of nutirents
+  I.N = 0.0225/2 # base input rate of nutrient
+  P.i = 3 # initial concentration of phytoplankton
+  N.i = 0 # initial concentration of nutirents
 
+  stdev = I.N/100
 
 ##### Variables #####
-  I.N.data = seq(I.N, I.N, length.out = timelength/2) #+ rnorm(timelength, mean = I.N, sd = I.N/10) # input rate of nutrients
-  I.N.data = seq(I.N/2, I.N/2, length.out = timelength/2) 
-  I.N.data = abs(I.N.data)
+  #I.N.data1 = seq(I.N, I.N, length.out = timelength/2) #+ rnorm(timelength, mean = I.N, sd = I.N/10) # input rate of nutrients
+  #I.N.data2 = seq(I.N/2, I.N/2, length.out = timelength/2) 
+  #I.N.data = abs(c(I.N.data1, I.N.data2))
+  I.N.data1 = seq(I.N, I.N, length.out = timelength/2-1) + rnorm(timelength/2, mean = I.N,   sd = stdev)
+  I.N.data2 = seq(I.N, I.N/2, length.out = timelength/4-1) + rnorm(timelength/4, mean = I.N,   sd = stdev)
+  I.N.data3 = seq(I.N/2, I.N/2, length.out = timelength/4-1) + rnorm(timelength/4, mean = I.N,   sd = stdev)
+  I.N.data = c(I.N.data1,I.N.data2,I.N.data3)
   N.data = c(N.i, rep(0, timelength-1)) # Nutrient concentration over time
   P.data = c(P.i, rep(0, timelength-1)) # Phytoplankton concentration over time
   N = N.i # current nutrient concentration
@@ -53,19 +58,19 @@ library(ggplot2)
 
 
 ##### Plot Parameters #####  
-  plot.resolution = 5000
-  plot.ti = 0
-  plot.tf = 10000
+  plot.res.skip = as.integer(1/dt)
+  plot.ti = 2500
+  plot.tf = t.f
   plot.ti.index = as.integer(plot.ti/dt)
   plot.tf.index = as.integer(plot.tf/dt)
   
  
 ##### Plotting #####
   
-  P.RED <- P.data[seq(plot.ti.index,plot.tf.index,by=as.integer(timelength/plot.resolution))]
-  N.RED <- N.data[seq(plot.ti.index,plot.tf.index,by=as.integer(timelength/plot.resolution))]
-  I.RED <- I.N.data[seq(plot.ti.index,plot.tf.index,by=as.integer(timelength/plot.resolution))]
-  t.RED <- t[seq(plot.ti.index,plot.tf.index,by=as.integer(timelength/plot.resolution))]
+  P.RED <- P.data[seq(plot.ti.index,plot.tf.index,by=as.integer(plot.res.skip))]
+  N.RED <- N.data[seq(plot.ti.index,plot.tf.index,by=as.integer(plot.res.skip))]
+  I.RED <- I.N.data[seq(plot.ti.index,plot.tf.index,by=as.integer(plot.res.skip))]
+  t.RED <- t[seq(plot.ti.index,plot.tf.index,by=as.integer(plot.res.skip))]
   
   
   P.ts <- data.frame(Time = t.RED, Conc = N.RED, Var = rep("Phytoplankton",length(t.RED)))
