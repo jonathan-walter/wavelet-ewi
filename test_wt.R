@@ -1,6 +1,5 @@
-
+#install.packages("wsyn")
 require(wsyn)
-errcheck_times <- wsyn::errcheck_times
 time1<-1:100
 time2<-101:200
 ts1p1<-sin(2*pi*time1/15)
@@ -14,4 +13,6 @@ ra<-rnorm(200,mean=0,sd=0.5)
 t.series<-ts+ra
 t.series<-t.series-mean(t.series)
 times<-c(time1,time2)
-res<-wt(t.series, times)
+
+res<-wsyn::wt(t.series, times)
+plot(res$values)

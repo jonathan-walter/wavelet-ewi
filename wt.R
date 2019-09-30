@@ -46,11 +46,12 @@
 #' @export
 #' @importFrom stats fft
 
-wt <- function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.05, f0=1)
-{
+wt <- function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.05, f0=1){
+
   #error checking
-  errcheck_tsdat(times,t.series,"wt")
-  errcheck_wavparam(scale.min,scale.max.input,sigma,f0,times,"wt")
+  
+  wsyn:::errcheck_tsdat(times,t.series,"wt")
+  wysn:::errcheck_wavparam(scale.min,scale.max.input,sigma,f0,times,"wt")
     
   if(is.null(scale.max.input)){
     scale.max<-length(t.series)
@@ -112,14 +113,14 @@ wt <- function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.05, f
   if(is.null(scale.max.input)){
     result<-result[,1:m.last]
     timescales<-s2[1:m.last]/f0
-    errcheck_tts(times,timescales,result,"wt")
+    wsyn:::errcheck_tts(times,timescales,result,"wt")
     result<-list(values=result, times=times, wtopt=wtopt, timescales=timescales, dat=t.series)
     class(result)<-c("wt","tts","list")
     return(result)
   }
   else{
     timescales<-s2/f0
-    errcheck_tts(times,timescales,result,"wt")
+    wsyn:::errcheck_tts(times,timescales,result,"wt")
     result<-list(values=result, times = times, wtopt=wtopt, timescales=timescales, dat=t.series)
     class(result)<-c("wt","tts","list")
     return(result)
