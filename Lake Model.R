@@ -2,12 +2,15 @@
 # Based on Serizawa et al (2008)
 
 library(ggplot2)
+require(colorednoise)
 rm(list=ls())
+
+min.per.month = 43829.0639
 
 ##### Simulation Parameters #####
   dt = 0.01
-  t.i = 0
-  t.f = 30000
+  t.i = dt
+  t.f = 4*min.per.month
   t = seq(t.i,t.f,by=dt)
   timelength = length(t)
   
@@ -19,24 +22,39 @@ rm(list=ls())
   m.N = 0.015 # removal rate of nutrients
   h.N = 0.005 # half saturation of nutrients
   h.P = 4.0 # half saturation of phytoplankton
-  P.i = 50  # initial concentration of phytoplankton
-  N.i = 5 # initial concentration of nutirents
+  P.i = 1.3  # initial concentration of phytoplankton
+  N.i = 0.0025 # initial concentration of nutirents
   
   
   #Critical Parameters
-  f.P = 0.9 # max predation rate on phytoplankton
-  in1 = 0.15
+  f.p = 0.8 # max predation rate on phytoplankton
+  in1 = 0.1
   in2 = 0.3
+  F.P = f.p*mu*h.P
   I.N1 =  in1*mu*h.N
   I.N2 = in2*mu*h.N
 
-  stdev = (I.N1+I.N2)*0
+  stdev = (I.N1+I.N2)/5
+  PHI = 0.99999
+  day.amp = (I.N1+I.N2)/50
+  
+  series = c(1, 3, 4)/4
+  sequence = c(1,2,1)/4
+  
   
   ##### Variables #####
-  I.N.data1 = abs(rnorm(timelength/3, mean = I.N1,   sd = stdev))
-  I.N.data2 = seq(I.N1, I.N2, length.out = timelength/12) + rnorm(timelength/12+1, mean = 0,   sd = stdev)
-  I.N.data3 = abs(rnorm(7*timelength/12 - 1, mean = I.N2,   sd = stdev))
+  #noise with period of 1440 minutes
+  dayCycle = day.amp*sin(2*pi*seq(t.i,t.f,dt)/1440)
+  I.N.data1 = rnorm(series[1]*timelength, mean = I.N1,   sd = stdev) + dayCycle[0:(timelength*series[1])]
+  I.N.data2 = seq(I.N1, I.N2, length.out = timelength*sequence[2]) + dayCycle[(timelength*series[1]+1):(timelength*series[2])]+ rnorm(sequence[2]*timelength, mean = 0,   sd = stdev)
+  I.N.data3 = rnorm(sequence[3]*timelength, mean = I.N2,   sd = stdev) + dayCycle[(timelength*series[2]+1):(timelength*series[3])]
   I.N.data = c(I.N.data1,I.N.data2,I.N.data3)
+  
+  #redshifted noise with autocorrelation of PHI
+  #I.N.data1 = I.N1 + colored_noise(timesteps = sequence[1], mean = 0, sd = stdev, phi = PHI)
+  #I.N.data2 = series(I.N1, I.N2, length.out = sequence[2]-1) + colored_noise(timesteps = sequence[2], mean = 0, sd = stdev, phi = PHI)
+  #I.N.data3 = I.N2 + colored_noise(timesteps = sequence[3], mean = 0, sd = stdev, phi = PHI)
+  #I.N.data = c(I.N.data1,I.N.data2,I.N.data3)
   
   #I.N.data1 = abs(rnorm(timelength/2, mean = I.N1,   sd = stdev))
   #I.N.data2 = abs(rnorm(timelength/2, mean = I.N2,   sd = stdev))
@@ -48,11 +66,11 @@ rm(list=ls())
 ##### Functions #####
   
   dN <- function(n,p,i){
-    dt*(i - k*mu*n*p/(h.N+n) - N*m.N)
+    dt*(i - k*mu*n*p/(h.N+n) - n*m.N)
   }
   
   dP <- function(n,p){
-    dt*(mu*p*N/(h.N+n) - f.P*p/(h.P+p))
+    dt*(mu*p*n/(h.N+n) - F.P*p/(h.P+p))
   }
   
   
@@ -69,8 +87,8 @@ rm(list=ls())
 
 ##### Plot Parameters #####  
   plot.res.skip = as.integer(1/dt)
-  plot.ti = 3000
-  plot.tf = t.f
+  plot.ti = 50000
+  plot.tf = 100000
   plot.ti.index = as.integer(plot.ti/dt)
   plot.tf.index = as.integer(plot.tf/dt)
   
@@ -79,15 +97,15 @@ rm(list=ls())
   
   P.RED <- P.data[seq(plot.ti.index,plot.tf.index,by=as.integer(plot.res.skip))]
   N.RED <- N.data[seq(plot.ti.index,plot.tf.index,by=as.integer(plot.res.skip))]
-  I.RED <- I.N.data[seq(plot.ti.index,plot.tf.index,by=as.integer(plot.res.skip))]
+  i.RED <- I.N.data[seq(plot.ti.index,plot.tf.index,by=as.integer(plot.res.skip))]/(mu*h.N)
   t.RED <- t[seq(plot.ti.index,plot.tf.index,by=as.integer(plot.res.skip))]
   
   
   P.ts <- data.frame(Time = t.RED, Conc = P.RED, Var = rep("Phytoplankton",length(t.RED)))
   N.ts <- data.frame(Time = t.RED, Conc = N.RED, Var = rep("Nutrients",length(t.RED)))
-  I.ts <- data.frame(Time = t.RED, Conc = I.RED, Var = rep("Inflow",length(t.RED)))
+  i.ts <- data.frame(Time = t.RED, Conc = i.RED, Var = rep("Inflow",length(t.RED)))
   
-  DATA.ts <- rbind(P.ts, N.ts, I.ts)
+  DATA.ts <- rbind(P.ts, N.ts, i.ts)
   
   p <- ggplot(data = DATA.ts, aes(x=Time,y=Conc)) + geom_line()+facet_grid(Var ~ ., scales = "free")
   p
