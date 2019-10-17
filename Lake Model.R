@@ -6,11 +6,12 @@ require(colorednoise)
 rm(list=ls())
 
 min.per.month = 43829.0639
+min.per.day = 1440
 
 ##### Simulation Parameters #####
   dt = 0.01
   t.i = dt
-  t.f = 4*min.per.month
+  t.f = min.per.month
   t = seq(t.i,t.f,by=dt)
   timelength = length(t)
   
@@ -27,34 +28,34 @@ min.per.month = 43829.0639
   
   
   #Critical Parameters
-  f.p = 0.8 # max predation rate on phytoplankton
-  in1 = 0.1
-  in2 = 0.3
+  f.p = 0.9 # max predation rate on phytoplankton
+  in1 = 0.8
+  in2 = 2.4
   F.P = f.p*mu*h.P
   I.N1 =  in1*mu*h.N
   I.N2 = in2*mu*h.N
 
-  stdev = (I.N1+I.N2)/5
-  PHI = 0.99999
-  day.amp = (I.N1+I.N2)/50
+  stdev = (I.N1+I.N2)/15
   
-  series = c(1, 3, 4)/4
   sequence = c(1,2,1)/4
+  sequence = round(sequence*timelength)
   
+  daily.PHI = 0.5
+  dt.per.day = min.per.day/dt
+  PHI = daily.PHI^(1/dt.per.day) 
   
   ##### Variables #####
   #noise with period of 1440 minutes
-  dayCycle = day.amp*sin(2*pi*seq(t.i,t.f,dt)/1440)
-  I.N.data1 = rnorm(series[1]*timelength, mean = I.N1,   sd = stdev) + dayCycle[0:(timelength*series[1])]
-  I.N.data2 = seq(I.N1, I.N2, length.out = timelength*sequence[2]) + dayCycle[(timelength*series[1]+1):(timelength*series[2])]+ rnorm(sequence[2]*timelength, mean = 0,   sd = stdev)
-  I.N.data3 = rnorm(sequence[3]*timelength, mean = I.N2,   sd = stdev) + dayCycle[(timelength*series[2]+1):(timelength*series[3])]
-  I.N.data = c(I.N.data1,I.N.data2,I.N.data3)
+  #I.N.data1 = rnorm(sequence[1], mean = I.N1,   sd = stdev)
+  #I.N.data2 = seq(I.N1, I.N2, length.out = sequence[2]) 
+  #I.N.data3 = rnorm(sequence[3], mean = I.N2,   sd = stdev)
+  #I.N.data = c(I.N.data1,I.N.data2,I.N.data3)
   
   #redshifted noise with autocorrelation of PHI
-  #I.N.data1 = I.N1 + colored_noise(timesteps = sequence[1], mean = 0, sd = stdev, phi = PHI)
-  #I.N.data2 = series(I.N1, I.N2, length.out = sequence[2]-1) + colored_noise(timesteps = sequence[2], mean = 0, sd = stdev, phi = PHI)
-  #I.N.data3 = I.N2 + colored_noise(timesteps = sequence[3], mean = 0, sd = stdev, phi = PHI)
-  #I.N.data = c(I.N.data1,I.N.data2,I.N.data3)
+  I.N.data1 = rep(I.N1, sequence[1])
+  I.N.data2 = seq(I.N1, I.N2, length.out = sequence[2])
+  I.N.data3 = rep(I.N2, sequence[3])
+  I.N.data = c(I.N.data1,I.N.data2,I.N.data3)+ colored_noise(timesteps = timelength, mean = 0, sd = stdev, phi = PHI)
   
   #I.N.data1 = abs(rnorm(timelength/2, mean = I.N1,   sd = stdev))
   #I.N.data2 = abs(rnorm(timelength/2, mean = I.N2,   sd = stdev))
@@ -86,9 +87,9 @@ min.per.month = 43829.0639
   }
 
 ##### Plot Parameters #####  
-  plot.res.skip = as.integer(1/dt)
-  plot.ti = 50000
-  plot.tf = 100000
+  plot.res.skip = as.integer(15/dt)
+  plot.ti = t.i
+  plot.tf = t.f
   plot.ti.index = as.integer(plot.ti/dt)
   plot.tf.index = as.integer(plot.tf/dt)
   
@@ -110,6 +111,25 @@ min.per.month = 43829.0639
   p <- ggplot(data = DATA.ts, aes(x=Time,y=Conc)) + geom_line()+facet_grid(Var ~ ., scales = "free")
   p
 
+  
+  require(wsyn)
+  
+  P.4wav = P.RED - mean(P.RED)
+  N.4wav = N.RED - mean(N.RED)
+  i.4wav = i.RED - mean(i.RED)
+  times = t.RED
+  
+  res <- wsyn::wt(N.4wav,times)
+  res$mag = sqrt(Re(res$values)^2+Im(res$values)^2)
+  
+  
+  
+  
+  #plot(times,res$mag[,1],"l",lty=1)
+  
+  #plot(res$timescales,res$mag[2500,])
+  
+  plotmag(res)
   
 
   
