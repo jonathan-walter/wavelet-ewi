@@ -2,8 +2,9 @@
 # Based on Serizawa et al (2008)
 
 run_lakemodel <- function(in1, in2, f.p, t.f, dt, run){
-      
-      library(ggplot2)
+  
+      require(colorednoise)
+
       
       ##### Simulation Parameters #####
       t.i = 0

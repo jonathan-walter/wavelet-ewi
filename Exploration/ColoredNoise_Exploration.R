@@ -1,7 +1,7 @@
 
-#install.packages("devtools")
-#install.packages("Rcpp")
-#devtools::install_github("japilo/colorednoise")
+install.packages("devtools")
+install.packages("Rcpp")
+devtools::install_github("japilo/colorednoise")
 require(colorednoise)
 require(wsyn)
 
