@@ -3,9 +3,9 @@ get_params = function(sequences){
   require(dplyr)
   Figure2Data <- read.csv("C:\\Users\\rimcl\\OneDrive\\School\\Capstone\\github\\Figure2Data-Serizawa.csv")
   FPvector = Figure2Data[,1]
-  df1 = Figure2Data[FPvector == 1,]
+  df1 = Figure2Data[FPvector == 0.95,]
   df2 =  Figure2Data[FPvector == 0.9,]
-  df3 =  Figure2Data[FPvector == 0.75,]
+  df3 =  Figure2Data[FPvector == 0.85,]
   LST = list(df1,df2,df3)
   
   PARAMS = NULL
@@ -47,6 +47,7 @@ get_params = function(sequences){
     PARAMS = rbind(PARAMS, temp)
   }
   colnames(PARAMS) <- c("f_p","i_n1","i_n2","label","s1","s2","s3")
+  PARAMS = data.frame(PARAMS)
   PARAMS
   
 }

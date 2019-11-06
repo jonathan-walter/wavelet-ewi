@@ -195,7 +195,6 @@ f_p,i_n,region,near_boundary,regionstr
 0.95,0.3,1,FALSE,a
 0.95,0.45,1,FALSE,a
 0.95,0.5,1,TRUE,a
-0.95,0.59,2,TRUE,b
 0.95,0.61,3,TRUE,c
 0.95,0.65,3,FALSE,c
 0.95,0.7,3,FALSE,c

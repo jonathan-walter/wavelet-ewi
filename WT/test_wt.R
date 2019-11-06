@@ -13,4 +13,4 @@
  times<-c(time1,time2)
 res<-wt(t.series, times)
 require(wsyn)
-res<-wsyn::wt(A, dim(A)[1])
+res<-wsyn::wt(A[,1], 1:dim(A)[1])

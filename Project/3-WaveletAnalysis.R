@@ -1,60 +1,74 @@
-run_wsyn <- function(DATA){
-  #require(EBImage)
-  #library(abind)
+run_wsyn <- function(DATA,pooling = "mean"){
+  require(abind)
   
   ###time in units of 15 minutes
   time = 1:dim(DATA)[1]
-  W.N = wt_ns(DATA[,1]-mean(DATA[,1]),time,scale.max.input = 24*14, sigma = 1.1)$mag
-  #W.P = wt_ns(DATA[,2]-mean(DATA[,2]),time,scale.max.input = 24*14, sigma = 1.1)$mag
-  #image = abind(W.N, W.P, along = 3)
-  #pooling(image,4,4)
-
-  ### need to deal with image size being too large
-  ### need to p
-  W.N
+  wt.N = wt_ns(DATA[,1]-mean(DATA[,1]),time)
+  W.N = Mod(wt.N$values^2)
+  wt.P = wt_ns(DATA[,2]-mean(DATA[,2]),time)
+  W.P = Mod(wt.P$values^2)
   
+  #stick the wt power matrices together
+  #original dim is 2161 by 126
+  if (pooling == "mean"){
+    IMN = avg_pool(W.N,10,10,1,1)
+    IMP = avg_pool(W.P,10,10,1,1)
+  }
+  if (pooling == "max"){
+    IMN = max_pool(W.N,10,10,1,1)
+    IMP = max_pool(W.P,10,10,1,1)
+  }
+  IM = abind(IMN, IMP, along = 3)
+  IM
 }
 
-pooling <- function(type="max",image, filter, stride)
-{
-  f <- filter; s <- stride 
-  col <- dim(image[,,1])[2]  # get image dimensions
-  row <- dim(image[,,1])[1]
-  c <- (col-f)/s+1             # calculate new dimension size 
-  r <- (row-f)/s+1  
+avg_pool = function(image, filter_r, skip_r, filter_c, skip_c){
+  fc = filter_c; sc = skip_c;
+  fr = filter_r; sr = skip_r;
   
-  newImage <- array(0, c(c, r, 2)) # create new image object
-  for(rgb in 1:2)                  # loops in RGB layers 
-  {
-    m <- image[,,rgb]
-    m3 <- matrix(0, ncol = c, nrow = r)
-    i <- 1
-    if(type == "mean")
-      for(ii in 1:r)
-      {
-        j <- 1
-        for(jj in 1:c)
-        {
-          m3[ii,jj]<-mean(as.numeric(m[i:(i+(f-1)), j:(j+(f-1))]))
-          j <- j+s
-        } 
-        i <- i+s
-      }
-    else 
-      for(ii in 1:r)
-      {
-        j=1
-        for(jj in 1:c)
-        {
-          m3[ii,jj]<-max(as.numeric(m[i:(i+(f-1)), j:(j+(f-1))]))
-          j <- j+s
-        } 
-        i <- i+s
-      }
-    newImage[,,rgb] <- m3
+  col <- dim(image)[2]  # get image dimensions
+  row <- dim(image)[1]
+  c <- (col-fc)/sc+1           # calculate new dimension size 
+  r <- (row-fr)/sr+1  
+  
+  IM = matrix(0, nrow=r, ncol=c)
+  
+  i = 1
+  for (ii in 1:r){
+    j = 1
+    for(jj in 1:c){
+      #print(c(i,i+fr-1,j,j+fc-1))
+      IM[ii,jj] = mean(image[i:(i+fr-1),j:(j+fc-1)])
+      j = j + sc
+    }
+    i = i + sr
   }
-  return(newImage)
-}  
+  IM
+}
+
+max_pool = function(image, filter_r, skip_r, filter_c, skip_c){
+  fc = filter_c; sc = skip_c;
+  fr = filter_r; sr = skip_r;
+  
+  col <- dim(image)[2]  # get image dimensions
+  row <- dim(image)[1]
+  c <- (col-fc)/sc+1           # calculate new dimension size 
+  r <- (row-fr)/sr+1  
+  
+  IM = matrix(0, nrow=r, ncol=c)
+  
+  i = 1
+  for (ii in 1:r){
+    j = 1
+    for(jj in 1:c){
+      #print(c(i,i+fr-1,j,j+fc-1))
+      IM[ii,jj] = max(image[i:(i+fr-1),j:(j+fc-1)])
+      j = j + sc
+    }
+    i = i + sr
+  }
+  IM
+}
 
 ##################################################
 

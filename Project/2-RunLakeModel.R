@@ -1,8 +1,11 @@
 # Lake Model - Mean Field
 # Based on Serizawa et al (2008)
 
-run_lakemodel <- function(in1, in2, f.p, dt, sequence, run){
-  
+run_lakemodel <- function(param,dt){
+  f.p = as.numeric(param[1])
+  in1 = as.numeric(param[2])
+  in2 = as.numeric(param[3])
+  sequence = as.numeric(param[5:7])
   
   #install.packages("devtools")
   #install.packages("Rcpp")
@@ -19,7 +22,7 @@ run_lakemodel <- function(in1, in2, f.p, dt, sequence, run){
   
   
   ##### Model Parameters #####
-  min.per.sample = 60
+  min.per.sample = 60 # not 15
   min.per.day = 1440
   
   mu = 0.5 # max growth rate of phytoplankton
@@ -30,6 +33,7 @@ run_lakemodel <- function(in1, in2, f.p, dt, sequence, run){
   h.P = 4.0 # half saturation of phytoplankton
   
   Initials = Find_Equilibrium(in1, f.p)
+
   N.i = Initials[1] # initial concentration of nutirents
   P.i = Initials[2]  # initial concentration of phytoplankton
 
@@ -49,9 +53,10 @@ run_lakemodel <- function(in1, in2, f.p, dt, sequence, run){
   ##### Variables #####
   #redshifted noise with autocorrelation of PHI
   I.N.data1 = rep(I.N1, sequence[1])
-  I.N.data2 = seq(I.N1, I.N2, length.out = sequence[2]+1)
+  I.N.data2 = seq(from = I.N1, to = I.N2, length.out = sequence[2]+1)
   I.N.data3 = rep(I.N2, sequence[3])
-  I.N.data = c(I.N.data1,I.N.data2,I.N.data3)+ colored_noise(timesteps = timelength, mean = 0, sd = stdev, phi = PHI)
+  
+  I.N.data = c(I.N.data1,I.N.data2,I.N.data3)+ colored_noise(timesteps = timelength+1, mean = 0, sd = stdev, phi = PHI)
   
   N.data = na.omit(c(N.i, rep(0, timelength-1))) # Nutrient concentration over time
   P.data = na.omit(c(P.i, rep(0, timelength-1))) # Phytoplankton concentration over time
@@ -97,14 +102,13 @@ run_lakemodel <- function(in1, in2, f.p, dt, sequence, run){
       i.data[index] = I.N.data[i]/(mu*h.N)
     }
   }
-  print(index)
   
   #P.ts <- data.frame(Time = time.data, Conc = P.data, Var = rep("Phytoplankton",length(time.data)), Run = run)
   #N.ts <- data.frame(Time = time.data, Conc = N.data, Var = rep("Nutrients",length(time.data)), Run = run)
   #i.ts <- data.frame(Time = time.data, Conc = i.data, Var = rep("Inflow",length(time.data)), Run = run)
   
 
-  DATA.ts <- cbind(P.data,N.data)
+  DATA.ts <- cbind(N.data,P.data)
 }
 
 
@@ -141,7 +145,6 @@ Find_Equilibrium <- function(in1, f.p){
     dt*(mu*p*n/(h.N+n) - F.P*p/(h.P+p))
   }
   ##### Simulation #####
-  
   i = 0
   while((i < iter.limit)){
     N.prev = N.curr
