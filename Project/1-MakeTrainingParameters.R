@@ -24,6 +24,7 @@ get_params = function(sequences){
     for (i in 2:dim(item)[1]){
         for (s in 1:dim(sequences)[1]){
           
+          if ((item$regionstr[i-1] != 'a') | (item$regionstr[i] == 'a')){
             label = rbind(label, item$near_boundary[i]&item$near_boundary[i-1])
             i.n1 = rbind(i.n1, item$i_n[i-1])
             i.n2 = rbind(i.n2, item$i_n[i])
@@ -31,8 +32,9 @@ get_params = function(sequences){
             s1 = rbind(s1,sequences[s,1])
             s2 = rbind(s2,sequences[s,2])
             s3 = rbind(s3,sequences[s,3])
+          }
             
-        
+          if ((item$regionstr[i] != 'a') | (item$regionstr[i-1] == 'a')){
             label = rbind(label, item$near_boundary[i]&item$near_boundary[i-1])
             i.n1 = rbind(i.n1, item$i_n[i])
             i.n2 = rbind(i.n2, item$i_n[i-1])
@@ -40,9 +42,20 @@ get_params = function(sequences){
             s1 = rbind(s1,sequences[s,1])
             s2 = rbind(s2,sequences[s,2])
             s3 = rbind(s3,sequences[s,3])
+          }
         }
+   
+      if(item$near_boundary[i] == FALSE){
+        label = rbind(label, FALSE)
+        i.n1 = rbind(i.n1, item$i_n[i])
+        i.n2 = rbind(i.n2, item$i_n[i])
+        f.p = rbind(f.p, item$f_p[i])
+        s1 = rbind(s1,1)
+        s2 = rbind(s2,0)
+        s3 = rbind(s3,0)
+      }
     }
-    
+  
     temp = cbind(f.p,i.n1,i.n2,label,s1,s2,s3)
     PARAMS = rbind(PARAMS, temp)
   }

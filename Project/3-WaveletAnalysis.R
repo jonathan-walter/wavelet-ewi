@@ -1,4 +1,4 @@
-run_wsyn <- function(DATA,pooling = "mean"){
+run_wsyn <- function(DATA,kr,kc,pooling = "mean"){
   require(abind)
   
   ###time in units of 15 minutes
@@ -11,12 +11,12 @@ run_wsyn <- function(DATA,pooling = "mean"){
   #stick the wt power matrices together
   #original dim is 2161 by 126
   if (pooling == "mean"){
-    IMN = avg_pool(W.N,10,10,1,1)
-    IMP = avg_pool(W.P,10,10,1,1)
+    IMN = avg_pool(W.N,kr,kr,kc,kc)
+    IMP = avg_pool(W.P,kr,kr,kc,kc)
   }
   if (pooling == "max"){
-    IMN = max_pool(W.N,10,10,1,1)
-    IMP = max_pool(W.P,10,10,1,1)
+    IMN = max_pool(W.N,kr,kr,kc,kc)
+    IMP = max_pool(W.P,kr,kr,kc,kc)
   }
   IM = abind(IMN, IMP, along = 3)
   IM

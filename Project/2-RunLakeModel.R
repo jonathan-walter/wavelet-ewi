@@ -42,7 +42,10 @@ run_lakemodel <- function(param,dt){
   I.N1 =  in1*mu*h.N
   I.N2 = in2*mu*h.N
   
-  stdev = (I.N1+I.N2)/20
+  
+  stdev = 0.05/2
+  STDEV = mu*h.N*stdev 
+  
 
   daily.PHI = 0.5
   dt.per.day = min.per.day/dt
@@ -56,7 +59,8 @@ run_lakemodel <- function(param,dt){
   I.N.data2 = seq(from = I.N1, to = I.N2, length.out = sequence[2]+1)
   I.N.data3 = rep(I.N2, sequence[3])
   
-  I.N.data = c(I.N.data1,I.N.data2,I.N.data3)+ colored_noise(timesteps = timelength+1, mean = 0, sd = stdev, phi = PHI)
+  temp = c(I.N.data1,I.N.data2,I.N.data3)
+  I.N.data = c(I.N.data1,I.N.data2,I.N.data3)+ colored_noise(timesteps = length(temp), mean = 0, sd = STDEV, phi = PHI)
   
   N.data = na.omit(c(N.i, rep(0, timelength-1))) # Nutrient concentration over time
   P.data = na.omit(c(P.i, rep(0, timelength-1))) # Phytoplankton concentration over time
@@ -115,7 +119,7 @@ run_lakemodel <- function(param,dt){
 Find_Equilibrium <- function(in1, f.p){
   ##### Simulation Parameters #####
   dt = 0.01
-  iter.limit = 1000/dt
+  iter.limit = 10000/dt
   
   ##### Model Parameters #####
   mu = 0.5 # max growth rate of phytoplankton
@@ -157,5 +161,3 @@ Find_Equilibrium <- function(in1, f.p){
   
   return = c(N.curr, P.curr)
 }
-
-
