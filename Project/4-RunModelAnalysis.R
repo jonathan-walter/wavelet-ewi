@@ -1,8 +1,14 @@
-
 #install.packages("tictoc")
-### put all of it together ###
+#install.packages("foreach")
+#install.packages("doParallel")
+
 rm(list=ls())
 require(tictoc)
+require(foreach)
+require(doParallel)
+
+cores = detectCores()
+c1 = makeCluster(cores[1]-1)
 
 setwd("C:/Users/rimcl/OneDrive/School/Capstone/github/Project")
 source("1-MakeTrainingParameters.R")
@@ -49,7 +55,7 @@ dt = 0.01
 params = get_params(sequences)
 
 
-#params = params[params$label == 1,]
+params = params[params$label == 1,]
 nsamples = 5
 params = params[sample(1:dim(params)[1],nsamples),]
 
@@ -65,22 +71,25 @@ saveRDS(keys,"key")
 
 imax = dim(params)[1]
 
+registerDoParallel(c1)
 tic()
-for(i in 1:imax){
+foreach(i=1:imax) %dopar% {
   ts = run_lakemodel(params[i,],dt)
   wt = run_wsyn(ts,17,2, pooling = "mean")
   string = paste("wt_avg_",i,sep="")
   saveRDS(wt, file = string)
-  if ((i%%(floor(imax/100) == 0))){
-    print(paste(round(100*i/imax, digits = 3), "% done...",sep = ""),quote = FALSE);
-    toc();
-  }
+  #if ((i%%(floor(imax/100) == 0))){
+  #  print(paste(round(100*i/imax, digits = 3), "% done...",sep = ""),quote = FALSE);
+  #  toc();
+  #}
 }
+toc()
+stopCluster(c1)
 
 LST = NULL
 if(TRUE){
   for (i in 1:5){
     LST[[i]] = readRDS(paste("wt_avg_",i,sep=""))
-    image(LST[[i]][,,1],col=hcl.colors(200,"Plasma"))
+    #image(LST[[i]][,,1],col=hcl.colors(200,"Plasma"))
   }
 }
