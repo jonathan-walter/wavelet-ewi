@@ -22,7 +22,7 @@ run_lakemodel <- function(param,dt){
   
   
   ##### Model Parameters #####
-  min.per.sample = 60 # not 15
+  min.per.sample = 60# not 15
   min.per.day = 1440
   
   mu = 0.5 # max growth rate of phytoplankton
@@ -43,7 +43,7 @@ run_lakemodel <- function(param,dt){
   I.N2 = in2*mu*h.N
   
   
-  stdev = 0.05/2
+  stdev = 0.05
   STDEV = mu*h.N*stdev 
   
 
@@ -83,6 +83,7 @@ run_lakemodel <- function(param,dt){
   N.curr = N.i
   P.curr = P.i
   N.data = NULL
+  i.data = NULL
   P.data = NULL
   N.data[index] = N.curr
   P.data[index] = P.curr
@@ -112,7 +113,7 @@ run_lakemodel <- function(param,dt){
   #i.ts <- data.frame(Time = time.data, Conc = i.data, Var = rep("Inflow",length(time.data)), Run = run)
   
 
-  DATA.ts <- cbind(N.data,P.data)
+  DATA.ts <- cbind(N.data,P.data,i.data)
 }
 
 

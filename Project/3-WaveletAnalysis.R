@@ -120,7 +120,7 @@ max_pool = function(image, filter_r, skip_r, filter_c, skip_c){
 #' @export
 #' @importFrom stats fft
 
-wt_ns <- function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.05, f0=1)
+wt_ns <- function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.04, f0=1)
   {
   #error checking
   wsyn:::errcheck_tsdat(times,t.series,"wt")

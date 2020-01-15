@@ -65,7 +65,7 @@ keys = params$label
 if(!dir.exists("C:/Users/rimcl/Capstone_Data")){
   dir.create("C:/Users/rimcl/Capstone_Data")
 }
-setwd("C:/Users/rimcl/Capstone_Data")
+
 
 saveRDS(keys,"key")
 
