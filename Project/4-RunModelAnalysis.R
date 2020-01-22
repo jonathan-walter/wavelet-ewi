@@ -2,6 +2,8 @@
 #install.packages("foreach")
 #install.packages("doParallel")
 
+runModel_getWT= function(sequences,window_width,n_samples,use_cores){
+
 rm(list=ls())
 require(tictoc)
 require(foreach)
@@ -9,6 +11,7 @@ require(doParallel)
 
 cores = detectCores()
 c1 = makeCluster(cores[1]-1)
+#c1 = cores_used
 
 setwd("C:/Users/rimcl/OneDrive/School/Capstone/github/Project")
 source("1-MakeTrainingParameters.R")
@@ -56,7 +59,6 @@ params = get_params(sequences)
 
 
 params = params[params$label == 1,]
-nsamples = 5
 params = params[sample(1:dim(params)[1],nsamples),]
 
 keys = params$label
@@ -85,7 +87,7 @@ foreach(i=1:imax) %dopar% {
 }
 toc()
 stopCluster(c1)
-
+}
 LST = NULL
 if(TRUE){
   for (i in 1:5){

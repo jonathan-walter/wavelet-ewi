@@ -1,4 +1,4 @@
-compile_data <- function(p, channel, PATH){
+compile_data <- function(p, channel, p_train, PATH){
 
   #channel 1 is nutrients, channel 2 is phytoplankton
   
@@ -10,7 +10,7 @@ compile_data <- function(p, channel, PATH){
   n_max = 2833
   n_channels = length(channel)
   
-  p_train = 0.8
+ 
   n_samples = length(key)
   n_train = round(round(p*n_samples)*p_train)
   n_test = round(p*n_samples)-n_train
@@ -60,5 +60,7 @@ compile_data <- function(p, channel, PATH){
   data[[3]] = test_x
   data[[4]] = test_y
   data[[5]] = i_train
+  
+  data
 }
 

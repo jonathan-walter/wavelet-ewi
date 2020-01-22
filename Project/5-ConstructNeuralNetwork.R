@@ -16,7 +16,7 @@ build_model <- function(){
   
   PADDING = "same"
   ACTIVATION = "relu"
-  LEARNINGRATE = 0.001
+  LEARNINGRATE = 0.005
   DECAY = 0.000001
   
   model %>%
@@ -47,11 +47,11 @@ build_model <- function(){
     
     #Fully Connected Layers
     layer_flatten(data_format="channels_last") %>%
-    layer_dense(units=16,input_shape=(64),data_format="channels_last") %>%
+    layer_dense(units=64,input_shape=(64),data_format="channels_last") %>%
     layer_activation(activation = ACTIVATION) %>%
     layer_dense(units=16, input_shape=(16),data_format="channels_last") %>% 
     layer_activation(activation = ACTIVATION) %>%
-    layer_dense(units=5, input_shape=(16), data_format="channels_last") %>%
+    layer_dense(units=16, input_shape=(16), data_format="channels_last") %>%
     layer_activation(activation = ACTIVATION) %>%
     layer_dense(units=2,activation="softmax",data_format="channels_last")
   
@@ -59,7 +59,7 @@ build_model <- function(){
     opt = optimizer_adam(lr=LEARNINGRATE, decay=DECAY)
    
     model %>%
-      compile(loss="binary_crossentropy",
+      compile(loss="categorical_crossentropy",
             optimizer=opt, metrics = "accuracy")
    
     summary(model)

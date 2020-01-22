@@ -49,7 +49,7 @@ build_model <- function(){
     layer_dense(units=16) %>% 
     layer_activation(activation = ACTIVATION) %>%
     layer_dense(units=2) %>%
-    layer_activation("softmax")
+    layer_activation(activation = ACTIVATION)
   
     
     opt = optimizer_adam(lr=LEARNINGRATE, decay=DECAY)
