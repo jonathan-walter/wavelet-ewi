@@ -1,40 +1,43 @@
 rm(list=ls())
-setwd("C:/Users/rimcl/OneDrive/School/Capstone/github/Project")
-source("5-ALT.R")
+require(keras)
+setwd("C:/Capstone")
+source("5-ConstructNeuralNetwork.R")
 source("6-PreProcessData.R")
 
-PATH =  "C:/WorkSchoolOffline/CapstoneData"
+PATH =  "C:/Capstone/OldCapstoneData"
 
-model = build_model()
-data = compile_data(1,2,0.5,PATH) #(n_samples,channel)
+#test model trained on firsthalf on second data set
+
+#data = prep_data(expand_data(compile_data(1:100,2,PATH)),0.7)
+
+#data_orig = prep_data(compile_data(1:2883,2,PATH),0.7)
+temp = compile_data(1:2833,PATH)
+data = prep_data(temp,0.7) 
+##############################################
+
+model1 = build_model()
 
 train_x = data[[1]]
 train_y = data[[2]]
-not_train_y = !train_y
-train_y = cbind(not_train_y,train_y)
 test_x = data[[3]]
 test_y = data[[4]]
-not_test_y = !data[[4]]             
-test_y = cbind(not_test_y,test_y)
 
-test_indices = data[[5]]
-
-
-
-model %>% fit(train_x, train_y, 
+model1 %>% fit(train_x, train_y, 
               batch_size = 128, epochs = 1000,
               validation_data = list(test_x,test_y),
               shuffle = TRUE)
 
-saveRDS(R, file = "MODEL")
+string = paste("model-avg",Sys.Date(),sep="-")
+save_model_tf(model1, file = string)
 
-out = predict(model, test_x)
-y_cat = as.numeric(test_y[,2]>test_y[,1])+1
-out_cat = as.numeric(out[,2]>out[,1])+1
-outcome = (y_cat == out_cat)
+out = predict_classes(model1, test_x)
+outcome = out == test_y[,2]
+
 
 accuracy = mean(outcome)
 accuracyNull = mean(outcome[test_y[,1]==1])
 accuracyAlt = mean(outcome[test_y[,2]==1])
 
-c(accuracy, accuracyNull, accuracyAlt)
+cbind(out, y_cat,(y_cat == out_cat))
+out1 = c(accuracy, accuracyNull, accuracyAlt)
+out1

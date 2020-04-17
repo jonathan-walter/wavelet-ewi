@@ -264,11 +264,11 @@ run_lakemodel <- function(param,sigma,dt){
   plot.res.skip = min.per.sample*as.integer(1/dt)
   
   for(i in 2:timelength){
-      N.prev = N.curr
+    N.prev = N.curr
     P.prev = P.curr
-    P.curr <- P.prev + dP(N.prev,P.prev)
+    P.curr <- abs(P.prev + dP(N.prev,P.prev))
     dn <- dN(N.prev,P.prev,I.N.data[i-1])
-    N.curr <- (N.prev + dn)*(N.prev+dn >= 0)
+    N.curr <- abs(N.prev + dn)
     if(((i-1)%%plot.res.skip)==0){
       index = index + 1
       N.data[index] = N.curr
@@ -277,7 +277,6 @@ run_lakemodel <- function(param,sigma,dt){
       i.data[index] = I.N.data[i]/(mu*h.N)
     }
   }
-  
   #P.ts <- data.frame(Time = time.data, Conc = P.data, Var = rep("Phytoplankton",length(time.data)), Run = run)
   #N.ts <- data.frame(Time = time.data, Conc = N.data, Var = rep("Nutrients",length(time.data)), Run = run)
   #i.ts <- data.frame(Time = time.data, Conc = i.data, Var = rep("Inflow",length(time.data)), Run = run)

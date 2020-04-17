@@ -1,22 +1,17 @@
-#' Build Keras Convolutional Neural Network
-#' 
-#' Constructs a Keras NN with 4 convolutional layers
-#' 
-#' @note it might be necessary to run install_packages first
-#' 
-#' @return an untrained Keras CNN with randomized params
-#' 
-#' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
-#' \email{jaw3es@@virginia.edu}
-#' 
-#' @export
-#' @import devtools
-#' @import keras
-#' @import tensorflow
-
-
 build_model <- function(){
-
+  require(devtools)
+  
+  #devtools::install_github("rstudio/keras")
+  require(keras)
+  require(tensorflow)
+  #install_keras()
+  #install_tensorflow(gpu=F)
+  
+  #DATA = input #DATA is 2843 by 64 by 128
+  # 2843 samples
+  # images 64 by 128
+  
+  ###### Model #########
   model = keras_model_sequential()
   
   PADDING = "same"
@@ -51,8 +46,6 @@ build_model <- function(){
     layer_flatten(data_format="channels_last") %>%
     layer_dense(units=64) %>%
     layer_activation(activation = ACTIVATION) %>%
-    layer_dense(units=64) %>% 
-    layer_activation(activation = ACTIVATION) %>%
     layer_dense(units=16) %>% 
     layer_activation(activation = ACTIVATION) %>%
     layer_dense(units=2) %>%
@@ -69,3 +62,5 @@ build_model <- function(){
   
   model
 }
+
+

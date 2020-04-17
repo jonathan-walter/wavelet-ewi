@@ -1,15 +1,11 @@
-wt <- function(timeseries, key = NULL){
+run_wsyn <- function(timeseries,channel){
   require(EBImage)
+  timeseries = timeseries[,channel]
   time = 1:length(timeseries)
   wt = wt_ns(timeseries-mean(timeseries),time)
   wt.power = Mod(wt$values^2)
   IM = resize(wt.power,128,64)
-  out = NULL
-  if(!is.null(key)){
-    out[[1]] = IM
-    out[[2]] = key
-  }
-  out
+  IM
 }
 
 avg_pool = function(image, filter_r, skip_r, filter_c, skip_c){
