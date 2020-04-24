@@ -15,7 +15,7 @@ cores = detectCores()
 c1 = makeCluster(cores[1]-1)
 #c1 = cores_used
 
-setwd("C:/Capstone/github/Project")
+setwd("D:/Capstone")
 source("1-MakeTrainingParameters.R")
 source("2-RunLakeModel.R")
 source("3-WaveletAnalysis.R")
@@ -55,11 +55,11 @@ sequences = rbind(
 )
   
 
-dt = 0.01
-PATH = "C:/Capstone/github/Figure2Data-Serizawa.csv"
+dt = 0.02
+PATH = "D:/Capstone/Figure2Data-Serizawa.csv"
 sequences = sequences/rowSums(sequences)
 FP = c(0.9,1)
-param = get_params(sequences,FP,PATH)
+param = get_params_old(sequences,FP,PATH)
 temp = rbind(param,param)
 sigmas = c(rep(1,dim(temp)[1]/2),rep(0.5,dim(temp)[1]/2))
 params = cbind(temp,sigmas)
@@ -70,39 +70,41 @@ params = cbind(temp,sigmas)
 # params = params[sample(1:dim(params)[1],nsamples),]
 
 keys = params$label
+n = 1:length(keys)
+i_f = n[keys == 0]
+i_t = n[keys == 1]
+samps_f = sample(i_f, 200, replace = FALSE)
+samps_t = sample(i_t, 200, replace = FALSE)
+samps = c(samps_f,samps_t)
+samps = sort(samps)
 
 
-if(!dir.exists("C:/Capstone/Capstone_Data")){
-  dir.create("C:/Capstone/Capstone_Data")
+
+if(!dir.exists("C:/Capstone/")){
+  dir.create("C:/Capstone/")
 }
-setwd("C:/Capstone/Capstone_Data")
+setwd("C:/Capstone/")
 
-saveRDS(keys,"key")
 
 istart = 1
 imax = dim(params)[1] + istart - 1
 
 registerDoParallel(c1)
 tic()
-foreach(i=istart:imax) %dopar% {
+
+# foreach(i=samps) %dopar% {
+for (i in samps){
   ts = run_lakemodel(params[i,1:7],params[i,8],dt)
-  wt = run_wsyn(ts,2)
-  string = paste("wt_whole_",i,sep="")
-  saveRDS(wt, file = string)
+  string = paste("ts_whole_",i,sep="")
+  saveRDS(ts[,2], file = string)
+  keytemp = c(!params$label[i],params$label[i])
+  string = paste("ts_whole_key_",i,sep="")
+  saveRDS(keytemp, file = string)
   #if ((i%%(floor(imax/100) == 0))){
   #  print(paste(round(100*i/imax, digits = 3), "% done...",sep = ""),quote = FALSE);
   #  toc();
   #}
-  print(i)
 }
 toc()
 
 stopCluster(c1)
-
-LST = NULL
-if(TRUE){
-  for (i in istart:imax){
-    LST[[i]] = readRDS(paste("wt_avg_",i,sep=""))
-    image(LST[[i]][,,1],col=hcl.colors(200,"Plasma"))
-  } 
-}

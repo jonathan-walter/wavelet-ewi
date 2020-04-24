@@ -1,4 +1,4 @@
-wt_windowed = function(timeseries, window_width, window_stride, shift_index){
+wt_windowed = function(timeseries, window_width, window_stride, transition_index = NULL){
   #requires all supplemental inputs to be in terms of indices and not time!!!
   #shift index of zero means there is no shift
   
@@ -20,14 +20,27 @@ wt_windowed = function(timeseries, window_width, window_stride, shift_index){
     wt_fragment = run_wsyn(fragment)
     
     images[i,,] = wt_fragment
-    keys[i,1+as.numeric((index <= shift_index)&(endex >= shift_index))] = 1
+    
+    if(!is.null(transition_index)){
+      keys[i,1+as.numeric(index >= transition_index)] = 1
+    }
+    
+    ## outputs a 2d key, first col = 1 if the transition has NOT occurred, right col = 1 if the transition has occurred
     
     index = index+s
     endex = endex+s
   }
   
   output = NULL
-  output[[1]] = images
-  output[[2]] = keys
+  
+  if(is.null(transition_index)){
+    output = images
+  }
+  
+  if(!is.null(transition_index)){
+    output[[1]] = images
+    output[[2]] = keys
+  }
+
   output
 }

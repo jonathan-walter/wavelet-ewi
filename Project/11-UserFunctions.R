@@ -92,11 +92,15 @@ predict = function(model,imageset, type = "category"){
     resize_images(image)
   }
   
-  if(length(dims > 3)){
+  if(length(dims)>3){
     warning("expected input is three-dimensional")
     if (dims[4] != 1){
       stop("imageset must have only one channel")
     }
+  }
+  
+  if(length(dims)==3){
+    imageset = add_dimension(imageset)
   }
   
   singlebool = dims[1] == 1
@@ -104,15 +108,65 @@ predict = function(model,imageset, type = "category"){
     imageset = abind(imageset,imageset,along=1)
   }
   
-  imageset = add_dimension(imageset)
+  if(type == "category"){cla = keras::predict_classes(model,imageset)}
+  if(type == "probability"){cla = keras::predict_proba(model,imageset)}
+  if((type != "category")&(type != "probability")){stop("invalid type input; must be either category or probability")} 
   
-  if(output == "category"){cla = keras::predict_classes(model,imageset)}
-  if(output == "probability"){cla = keras::predict_proba(model,imageset)}
-  if((output != "category")&(output != "probability")){stop("invalid type input; must be either category or probability")} 
+  if(singlebool){
+    cla = cla[1,]
+  }
   cla
 }
 
+#########need descriptors for these
 
+expand_key = function(key_vector){
+  key = cbind(key_vector, !key_vector)
+  key
+}
+
+collapse_key = function(key_array){
+  key = key_array[,2]
+  key
+}
+
+predict_stats = function(predictions, keyset){
+  dim_p = dim(predictions)
+  if(!is.null(dim_p)){
+    if(length(dim_p)==1){
+      predictions = expand_key(predictions)
+    }
+  }
+  if(is.null(dim_p)){
+    predictions = expand_key(predictions)
+  }
+  
+  dim_k = dim(keyset)
+  if(!is.null(dim_p)){
+    if(length(dim_p)==1){
+      keyset = expand_key(keyset)
+    }
+  }
+  if(is.null(dim_p)){
+    keyset = expand_key(keyset)
+  }
+  
+  
+  out = predictions
+  test_y = keyset
+  
+  y_cat = as.numeric(test_y[,2]>test_y[,1])+1
+  out_cat = as.numeric(out[,2]>out[,1])+1
+  outcome = (y_cat == out_cat)
+  
+  accuracy = mean(outcome)
+  accuracyNull = mean(outcome[test_y[,1]==1])
+  accuracyAlt = mean(outcome[test_y[,2]==1])
+  
+  cbind(out, y_cat,(y_cat == out_cat))
+  out1 = data.frame(accuracy, accuracyNull, accuracyAlt)
+  out1
+}
 
 
 #' Install Keras, Tensorflow and Supporting Packages
@@ -127,7 +181,7 @@ predict = function(model,imageset, type = "category"){
 #' @export
 
 install_packages = function(){
-  packages = c("devtools","keras","tensorflow","abind")
+  packages = c("devtools","keras","tensorflow","abind","foreach","doParallel","wsyn")
   lapply(packages,package_check)
     
   if(!require("EBImage")){
@@ -206,7 +260,7 @@ add_dimension = function(array){
   }
   
   if(!is.null(dims)){
-    out = array(array,NULL,along=(length(dims)+1))
+    out = abind(array,NULL,along=(length(dims)+1))
   }
   
   out
@@ -377,7 +431,7 @@ prob_event2d = function(event, other_events){
   c(probability)
 }
 
-#' Wavelet Transform a Timeseries
+#' Single Wavelet Transform a Timeseries
 #' 
 #' Gives the 2D wavelet transform of a one variable timeseries
 #' 
@@ -393,7 +447,7 @@ prob_event2d = function(event, other_events){
 #' @import EBImage
 #' @export
 #' 
-wt <- function(timeseries, key = NULL){
+wt_simple <- function(timeseries, key = NULL){
   time = 1:length(timeseries)
   wt = wt_ns(timeseries-mean(timeseries),time)
   wt.power = Mod(wt$values^2)
@@ -410,10 +464,9 @@ wt <- function(timeseries, key = NULL){
 #' Gives the 2D wavelet transform of a one variable timeseries
 #' 
 #' @param timeseries a one-variable timeseries in vector form
+#' @param keyseries a one-variable timeseries labeling each point in the main timeseries
 #' @param window_width width of analysis window measured in number of timeseries indices
 #' @param window_stride stride of analysis window measured in number of timeseries indices
-#' @param shift_index optional input, will create a vector indicator for windows before and after the index with 0s and 1s, respectively
-#' 
 #' @return 128 by 64 matrix of wavelet power OR a list with 1: wavelet matrix and 2: key vector
 #' 
 #' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
@@ -421,7 +474,7 @@ wt <- function(timeseries, key = NULL){
 #' 
 #' @export
 
-wt_windowed = function(timeseries, window_width, window_stride, shift_index = NULL){
+wt_windowed = function(timeseries, keyseries = NULL, window_width, window_stride){
   
   n = length(timeseries)
   s = window_stride
@@ -441,8 +494,10 @@ wt_windowed = function(timeseries, window_width, window_stride, shift_index = NU
     wt_fragment = run_wsyn(fragment)
     
     imageset[i,,] = wt_fragment
-    if(!is.null(shift_index)){
-      keys[i,1+as.numeric((index <= shift_index)&(endex >= shift_index))] = 1
+    if(!is.null(keyseries)){
+      key_fragment = keyseries[index:endex]
+      mode = round(mean(key_fragment))
+      keys[i,mode+1] = 1
     }
     
     index = index+s
@@ -506,8 +561,7 @@ wt_windowed = function(timeseries, window_width, window_stride, shift_index = NU
 #' 
 #' @importFrom stats fft
 
-wt_ns <- function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.04, f0=1)
-{
+wt_ns = function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.04, f0=1){
   #error checking
   wsyn:::errcheck_tsdat(times,t.series,"wt")
   wsyn:::errcheck_wavparam(scale.min,scale.max.input,sigma,f0,times,"wt")
@@ -640,12 +694,36 @@ wt_ns <- function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.04
 #'
 #' @export
 #' 
-train_model = function(imageset, keys, model = NULL, test_iterations = 500, train_test_ratio = 0.7, batch_size = 128){
-  imageset = check_imageset(imageset)
-  keys = check_keys(keys)
+train_model = function(wt_data, model = NULL, test_iterations = 500, train_test_ratio = 0.7, batch_size = 128){
+  
+  if(is.null(model)){
+    model = build_model()
+  }
+  
+  imageset = check_imageset(wt_data[[1]])
+  keyset = check_keys(wt_data[[2]])
+  
+  PREdata = NULL
+  PREdata[[1]] = imageset
+  PREdata[[2]] = keyset
+  
+  data = prep_data(PREdata,train_test_ratio)
+
+  train_x = data[[1]]
+  train_y = data[[2]]
+  test_x = data[[3]]
+  test_y = data[[4]]
   
   
+  model %>% fit(train_x, train_y, 
+                batch_size = batch_size, epochs = test_iterations,
+                validation_data = list(test_x,test_y),
+                shuffle = TRUE)
   
+  predictions = predict(model,test_x)
+  accuracy = predict_stats(predictions,test_y)
+  print(accuracy)
+  model
 }
 
 
@@ -669,16 +747,16 @@ train_model = function(imageset, keys, model = NULL, test_iterations = 500, trai
 check_keys = function(keys){
   
   out = as.logical(keys)
-  if(is.na(out)){
+  if(sum( is.na(out) ) > 0){
     stop("keys must contain only logical values")
   }
   
-  dims = dim(out)
+  dims = dim(keys)
   if(is.null(dims)){
-    warning("pairing logical key vector with its negated self")
-    keys = cbind(out,!out) 
+    warning("pairing logical key vector with its negated self to produce N by 2 array")
+    keys = cbind(!keys,keys) 
   }
-  dims = dim(out)
+  dims = dim(keys)
   
   if(length(dims) > 2){
     stop("keys cannot be more than two columns")
@@ -689,10 +767,11 @@ check_keys = function(keys){
   
   if(length(dims[2])>2){
     warning("assuming key pairs are arranged in columns... converting to by-row")
-    out = t(out)
+    keys = t(keys)
   }
-  out
+  keys
 }
+
 
 
 #' Dimension check an image set
@@ -721,17 +800,86 @@ check_imageset = function(imageset){
     imageset = resize_images(image)
   }
   
-  if(length(dims > 3)){
-    warning("expected input is three-dimensional")
+  if(length(dims) > 3){
     if (dims[4] != 1){
       stop("imageset must have only one channel")
     }
+  }
+  if(length(dims) == 3){
+    message("adding dummy dimension for processing")
+    imageset = add_dimension(imageset)
+  }
+  if(length(dims) < 3){
+    stop("imageset should be at least three dimensional")
   }
   imageset
 }
   
   
 
+#' Wavelet Transform a Timeseries Set
+#' 
+#' With or without a key set bound in a list
+#' 
+#' @param timeseries an array of timeseries bound by row; can include an ordered key vector attached by list where entry 1 is the timeseries array
+#' 
+#' @returna set of 128 by 64 images bound by dimension 1; will be in a list with keys if input was a list with keys
+#' 
+#' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
+#' \email{jaw3es@@virginia.edu}
+#' 
+#' @import foreach
+#' @import doParallel
+#' 
+#' @export 
+wt <- function(ts_data){
+  
+  cores = detectCores()
+  c1 = makeCluster(cores[1]-1)
+  registerDoParallel(c1)
+  
+  if(is.list(ts_data)){
+    keys = check_keys(ts_data[[2]])
+    timeseries = ts_data[[1]]
+    N = dim(keys)[1]
+    
+    images = array(dim = c(N,128,64))
+    
+    # foreach(i = 1:N)%parfor%{
+    for (i in 1:N){
+      t = timeseries[i,]
+      time = 1:length(t)
+      wt = wt_ns(t-mean(t),time)
+      wt.power = Mod(wt$values^2)
+      IM = resize(wt.power,128,64)
+      images[i,,] = IM
+      print(i)
+    }
+    out = NULL
+    out[[1]] = images
+    out[[2]] = keys
+  }
+  
+  if(!is.list(ts_data)){
+    
+    N = dim(ts_data)[1]
+    
+    images = array(dim = c(N,128,64))
+    
+   # foreach(i = 1:N)%parfor%{
+    for(i in 1:N){
+      t = ts_data[i,]
+      time = 1:length(t)
+      wt = wt_ns(t-mean(t),time)
+      wt.power = Mod(wt$values^2)
+      IM = resize(wt.power,128,64)
+      images[i,,] = IM
+    }
+    out = images
+  }
+  stopCluster(c1)
+  out
+}
 #' Save Model to File
 #' 
 #' Save a model saved with the Keras standard
@@ -779,8 +927,8 @@ load_model = function(filename){
 #' @export
 
 load_premade_model = function(type){
-  t_filepath = "?"
-  d_filepath = "model-domain-04082020"
+  t_filepath = "D:/Capstone/model-transition"
+  d_filepath = "D:/Capstone/model-domain"
   model = NULL
   if(type == "transition"){
     model = load_model_tf(t_filepath)
@@ -806,16 +954,16 @@ load_premade_model = function(type){
 #' 
 #' @export
 load_premade_data = function(n_samples){
-  filepath = "SampleData"
+  filepath = "D:/Capstone/sample_ts_data"
   temp = readRDS(filepath)
   m = dim(temp[[1]])[1]
   
   if(n_samples>m){stop("n_samples must not exceed 400")}
   samps = sample(1:m,n_samples,replace=FALSE)
-  imageset = temp[[1]][samps,,]
+  timeset = temp[[1]][samps,]
   keyset = temp[[2]][samps,]
   out = NULL
-  out[[1]] = imageset
+  out[[1]] = timeset
   out[[2]] = keyset
   out
 }
@@ -856,14 +1004,14 @@ prep_data = function(DATA, p_train){
   
   index=1
   for (i in i_train){
-    train_x[index,,,1] = images[i,,]
+    train_x[index,,,1] = images[i,,,]
     train_y[index,] = keys[i,]
     index = index+1
   }
   
   index=1
   for (i in i_test){
-    test_x[index,,,1] = images[i,,]
+    test_x[index,,,1] = images[i,,,]
     test_y[index,] = keys[i,]
     index = index+1
   }

@@ -4,7 +4,7 @@
 
 #runModel_getWT= function(sequences,window_width,n_samples,use_cores){
 
-rm(list=ls())
+# rm(list=ls())
 require(tictoc)
 require(foreach)
 require(doParallel)
@@ -15,7 +15,7 @@ cores = detectCores()
 c1 = makeCluster(cores[1]-1)
 #c1 = cores_used
 
-setwd("C:/Capstone/github/Project")
+setwd("C:/Capstone")
 source("1-MakeTrainingParameters.R")
 source("2-RunLakeModel.R")
 source("3-WaveletAnalysis.R")
@@ -56,63 +56,82 @@ sequences = rbind(
 )
 
 
-dt = 0.01
-PATH = "C:/Capstone/github/Figure2Data-Serizawa.csv"
+dt = 0.025
+PATH = "D:/Capstone/Figure2Data-Serizawa.csv"
 sequences = sequences/rowSums(sequences)
 FP = 0.9
 
 tempP = get_params(sequences,FP,PATH)
-tempT = tempP[tempP$label ==1,]
-Tparams = tempT[sample(1:length(tempT[,1]),56),]
-tempF = tempP[tempP$label == 0,]
-Fparams = tempF[sample(1:length(tempF[,1]),165),]
+# tempP$lab = (tempP$label1 == 2)|(tempP$label2 == 2)
+# tempT = tempP[tempP$lab == 1,]
+# Tparams = tempT
+# tempF = tempP[tempP$lab == 0,]
+# Fparams = tempF[sample(1:length(tempF[,1]),165),]
 
-params = rbind(Tparams,Fparams)
+params = tempP
 
 #nsamples = 1
 #params = params[sample(1:dim(params)[1],nsamples),]
 
 
-if(!dir.exists("C:/Capstone/Capstone_Data")){
-  dir.create("C:/Capstone/Capstone_Data")
+if(!dir.exists("C:/Capstone/Capstone_Data325")){
+  dir.create("C:/Capstone/Capstone_Data325")
 }
-setwd("C:/Capstone/Capstone_Data")
+setwd("C:/Capstone/Capstone_Data325")
 
 
-istart = 110
+istart = 1
 imax = dim(params)[1] + istart - 1
-
 
 
 registerDoParallel(c1)
 tic()
-key = c()
 
-w.width = 7*24
-w.step = 2*24
+w.width = 5*24
+w.step = 1*24
 
-foreach(i=istart:imax) %dopar% {
+foreach(i = errors) %dopar% {
   
-  para = params[i-istart+1,]
-  ts = run_lakemodel_step(para,1,dt)
-  sequence = as.numeric(para[5:7])
-  step_index = ceiling(length(ts[,1])*(sequence[1] + sequence[2]/2)/(sum(sequence)))
-  wt1 = wt_windowed(ts,w.width,w.step,step_index)
-  
-  para = params[i-istart+1,]
-  ts = run_lakemodel_step(para,0.5,dt)
-  sequence = as.numeric(para[5:7])
-  step_index = ceiling(length(ts[,1])*(sequence[1] + sequence[2]/2)/(sum(sequence)))
-  wt2 = wt_windowed(ts,w.width,w.step,step_index)
-  
-  images = abind(wt1[[1]],wt2[[1]],along=1)
-  keys = abind(wt1[[2]],wt2[[2]],along=1)
+  # string = paste("windowed_wt",i,sep="_")
+  # #if(file.exists(string)){
+  #   
+  #   para = params[i-istart+1,]
+  #   ts = run_lakemodel_step(para,1,dt)
+  #   sequence = as.numeric(para[5:7])
+  #   step_index = ceiling(length(ts[,1])*(sequence[1] + sequence[2]/2)/(sum(sequence)))
+  #   wt = wt_windowed(ts,w.width,w.step,step_index)
+  #   
+  #   if(para$label2 != 2){
+  #     wt[[2]] = !wt[[2]]
+  #   }
+  #   
+  #   if(para$label1 == para$label2){
+  #     wt[[2]] = 0*wt[[2]]
+  #     wt[[2]][,1+as.numeric(para$label1==2)] = 1
+  #   }
+  #   saveRDS(wt, file = string)
+  # #}
   
   string = paste("windowed_wt",i,sep="_")
-  saveRDS(images, file = string)
   
-  string = paste("windowed_key",i,sep="_")
-  saveRDS(keys, file = string)
+  if(TRUE){
+  
+    para = params[i-istart-imax+1,]
+    ts = run_lakemodel_step(para,0,dt)
+    sequence = as.numeric(para[5:7])
+    step_index = ceiling(length(ts[,1])*(sequence[1] + sequence[2]/2)/(sum(sequence)))
+    wt = wt_windowed(ts,w.width,w.step,step_index)
+    if(para$label2 != 2){
+      wt[[2]] = !wt[[2]]
+    }
+    
+    if(para$label1 == para$label2){
+      wt[[2]] = 0*wt[[2]]
+      wt[[2]][,1+as.numeric(para$label1==2)] = 1
+    }
+    
+    saveRDS(wt, file = string)
+  }
   
   # if ((i%%(floor(imax/100) == 0))){
   #   print(paste(round(100*i/imax, digits = 3), "% done...",sep = ""),quote = FALSE);

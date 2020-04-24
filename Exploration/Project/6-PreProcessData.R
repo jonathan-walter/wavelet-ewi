@@ -1,28 +1,31 @@
 compile_data <- function(indices, PATH){
-  
+
   #channel 1 is nutrients, channel 2 is phytoplankton
   
   setwd(PATH)  
   require(abind)
   
-  flname = "wt_whole_"
+  flname = "wt_avg_"
   
   key = readRDS("key")
-
-  n_samples = length(indices)
   
+  n_samples = length(indices)
+
   data = array(dim=c(n_samples,128,64))
   
   index = 1
   for (i in indices){
     temp = readRDS(paste(flname,i,sep=""))
-    data[index,,] = temp
+    data[index,,] = temp[,,2]
     index = index+1
   }
   
+  key = t(key)
+  key[,1] = !key[,1]
+  
   output = NULL
   output[[1]] = data
-  output[[2]] = key[indices]
+  output[[2]] = key[indices,]
   
   output
 }
@@ -32,32 +35,26 @@ compile_data_windowed <- function(indices, PATH){
   
   #channel 1 is nutrients, channel 2 is phytoplankton
   
-  setwd(PATH)  
   require(abind)
   
   flname = "windowed_wt_"
-  keyname = "windowed_key_"
-  
+
   data = NULL
   keys = NULL
   
   for (i in indices){
-    tempdata = readRDS(paste(flname,i,sep=""))
-    tempkey = readRDS(paste(keyname,i,sep=""))
-    
-    
-    nt = sum(tempkey[,2])
-    n = 1:length(tempkey[,2])
-    
-    
-    
-    indices = n[tempkey[,2]==0]
-    it = n[tempkey[,2]==1]
-    samples = sample(indices,2*nt,replace=FALSE)
-    
-    data[[i]] = tempdata[c(it,samples),,]
-    keys[[i]] = tempkey[c(it,samples),]
-    
+     temp = readRDS(paste(flname,i,sep=""))
+     tempdata = temp[[1]]
+     tempkey = temp[[2]]
+     # 
+     # 
+     nt = sum(tempkey[,2])
+     n = 1:length(tempkey[,2])
+
+      samples = sample(n,5,replace=FALSE)
+      
+      data[[i]] = tempdata[samples,,]
+      keys[[i]] = tempkey[samples,]
   }
   
   data = abind(data,along=1)
@@ -100,27 +97,32 @@ prep_data = function(DATA, p_train){
   test_x = array(dim=c(n_samples-n_train,128,64,1))
   test_y = array(dim=c(n_samples-n_train,2))
   
+  if(is.null(dim(keys))){
+    keys = cbind(!keys,keys)
+  }
+  
+  
   index=1
   for (i in i_train){
     train_x[index,,,1] = images[i,,]
     train_y[index,] = keys[i,]
     index = index+1
   }
-  
+    
   index=1
   for (i in i_test){
     test_x[index,,,1] = images[i,,]
     test_y[index,] = keys[i,]
     index = index+1
   }
-  
+    
   output = NULL
   output[[1]] = train_x
   output[[2]] = train_y
   output[[3]] = test_x
   output[[4]] = test_y
-  
-  output
+    
+    output
   
 }
 
@@ -129,13 +131,13 @@ expand_data = function(DATA){
   
   IMAGES = DATA[[1]]
   key = DATA[[2]]
-  
+ 
   
   require(imager)
   
   temp = aperm(IMAGES,c(2,3,1,4))
   
-  
+
   
   shift1 = aperm(imshift(temp,0,16,boundary=2),c(3,1,2,4))
   shift2 = aperm(imshift(temp,0,32,boundary=2),c(3,1,2,4))
