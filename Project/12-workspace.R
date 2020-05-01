@@ -55,38 +55,39 @@
 # load_premade_data()
 ############################################################
 
-setwd("D:/Capstone")
+setwd("C:/Users/rimcl/OneDrive/School/Capstone/github/Project")
 source("11-UserFunctions.R")
 install_packages()
 ts_data = load_premade_data(200)
 wt_data = wt(ts_data)
 
-model = train_model(wt_data,test_iterations = 1000)
-imageset = images[[1]]
-keyset = images[[2]]
+model = build_model()
+model = train_model(model, wt_data,test_iterations = 1000)
 
-predictions = predict(model, imageset, type = "category")
-predict_stats(predictions,keyset)
+images = wt_data[[1]]
+keys = wt_data[[2]]
+
+predict_stats(model, images, keys)
 
 #################333
 
-
-setwd("C:/Capstone/Capstone_Data325")
-install_packages()
-wt_data = NULL
-key_data = NULL
-for (i in 1:1932){
-  temp = readRDS(paste("windowed_wt_",i,sep=""))
-  wt_data = abind(wt_data, temp[[1]], along = 1)
-  key_data = abind(key_data, temp[[2]], along = 1)
-}
-
-model = train_model(wt_data,test_iterations = 1000)
-imageset = images[[1]]
-keyset = images[[2]]
-
-predictions = predict(model, imageset, type = "category")
-predict_stats(predictions,keyset)
-
-
-
+# 
+# setwd("C:/Capstone/Capstone_Data325")
+# install_packages()
+# wt_data = NULL
+# key_data = NULL
+# for (i in 1:1932){
+#   temp = readRDS(paste("windowed_wt_",i,sep=""))
+#   wt_data = abind(wt_data, temp[[1]], along = 1)
+#   key_data = abind(key_data, temp[[2]], along = 1)
+# }
+# 
+# model = train_model(wt_data,test_iterations = 1000)
+# imageset = images[[1]]
+# keyset = images[[2]]
+# 
+# predictions = predict(model, imageset, type = "category")
+# predict_stats(predictions,keyset)
+# 
+# 
+# 

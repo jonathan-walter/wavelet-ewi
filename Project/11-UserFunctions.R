@@ -1,62 +1,6 @@
-# require(devtools)
-# install_github("cran/Emcdf")
-# 
-# require(tensorflow)
-##############################
-
-# classify(model,images)
-# 
-# classify_analyze(model, ts_data){
-#       registerDoParallel(c1)
-#       foreach(i=1:samples) %dopar%{
-#         wtout = wt(ts_data)
-#         prediction = aperm(predict(model,wtout), c(3,2))
-#         output(i,)
-#         
-# 
-# }
 
 ###################################################################
-
-#' Predict 1-Channel Image Feature Identification
-#' 
-#' Uses a pre-trained model to recognize features in an image or set of images
-#' 
-#' @param model a pre-trained CNN using the Keras package 
-#' @param imageset an N by 128 by 64 dimensional array; N is the number of different images
-#' 
-#' @return N by 2 dimensional matrix containing output of the two classes for each image
-#' 
-#' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
-#' \email{jaw3es@@virginia.edu}
-#' 
-#' @export
-#' @import devtools
-#' @import keras
-#' @import tensorflow
-#' @import abind
-#' @import EBImage
-
-# predict = function(model,imageset){
-#   require(devtools)
-#   require(keras)
-#   require(tensorflow)
-#   require(abind)
-# 
-#   imageset = check_images(imageset)
-# 
-#   singlebool = dims[1] == 1
-#   if (singlebool) {
-#     imageset = abind(imageset,imageset,along=1)
-#   }
-# 
-#   imageset = add_dimension(imageset)
-# 
-#   pred = keras::predict_proba(model,imageset)
-# 
-#   pred
-# }
-
+#' wtCNN
 ###################################################################
 
 #' Predict 1-Channel Image Classification
@@ -93,7 +37,7 @@ predict = function(model,imageset, type = "category"){
   }
   
   if(length(dims)>3){
-    warning("expected input is three-dimensional")
+    warning("expected input is f")
     if (dims[4] != 1){
       stop("imageset must have only one channel")
     }
@@ -118,53 +62,68 @@ predict = function(model,imageset, type = "category"){
   cla
 }
 
-#########need descriptors for these
-
+#' Turn 1-variable key into 2-variable key
+#' 
+#' @param key_vector key vector
+#' 
+#' @return a two column array with one FALSE and one TRUE per row as determined by the key vector
+#' 
+#' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
+#' \email{jaw3es@@virginia.edu}
+#' 
 expand_key = function(key_vector){
+  if(!is.null(dim(key_vector))){
+    stop("key vector must be a vector")
+  }
+  out = as.logical(key_vector)
+  if(sum( is.na(out) ) > 0){
+    stop("key vector must contain only logical values")
+  }
   key = cbind(key_vector, !key_vector)
   key
 }
 
+#' Turn 2-variable key into 1-variable key
+#' 
+#' @param key_array binary logical key array with two columns and exactly one FALSE and one TRUE per row
+#' 
+#' @return a key vector
+#' 
+#' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
+#' \email{jaw3es@@virginia.edu}
+#' 
 collapse_key = function(key_array){
-  key = key_array[,2]
+  key = key_array[,1]
   key
 }
 
-predict_stats = function(predictions, keyset){
-  dim_p = dim(predictions)
-  if(!is.null(dim_p)){
-    if(length(dim_p)==1){
-      predictions = expand_key(predictions)
-    }
-  }
-  if(is.null(dim_p)){
-    predictions = expand_key(predictions)
-  }
+#' Prediction Errors
+#' 
+#' Calculate Accuracy, Type I and Type II Errors
+#' 
+#' @param model a pre-trained CNN using the Keras package 
+#' @param images an N by 128 by 64 dimensional array; N is the number of different imageset
+#' @param keys vector of image labels
+#' 
+#' @note Null hypothesis is assumed to be key = 0, alternative hypothesis is key = 1
+#' 
+#' @return A data frame with accuracy, Type I Error, and Type II Error
+#' 
+#' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
+#' \email{jaw3es@@virginia.edu}
+#' 
+#' @export
+predict_stats = function(model,images,keys){
   
-  dim_k = dim(keyset)
-  if(!is.null(dim_p)){
-    if(length(dim_p)==1){
-      keyset = expand_key(keyset)
-    }
-  }
-  if(is.null(dim_p)){
-    keyset = expand_key(keyset)
-  }
+  predictions = predict(model, images, type = "category")
+
+  outcome = (keys == predictions)
   
-  
-  out = predictions
-  test_y = keyset
-  
-  y_cat = as.numeric(test_y[,2]>test_y[,1])+1
-  out_cat = as.numeric(out[,2]>out[,1])+1
-  outcome = (y_cat == out_cat)
-  
-  accuracy = mean(outcome)
-  accuracyNull = mean(outcome[test_y[,1]==1])
-  accuracyAlt = mean(outcome[test_y[,2]==1])
-  
-  cbind(out, y_cat,(y_cat == out_cat))
-  out1 = data.frame(accuracy, accuracyNull, accuracyAlt)
+  Accuracy = mean(outcome)
+  Type1Error = mean(outcome[keys==0])
+  Type2Error = mean(outcome[keys==1])
+
+  out1 = data.frame(Accuracy, Type1Error, Type2Error)
   out1
 }
 
@@ -270,6 +229,8 @@ add_dimension = function(array){
 #' 
 #' Constructs a Keras NN with 4 convolutional layers
 #' 
+#' @param LEARNINGRATE default set to 0.001
+#' 
 #' @note it might be necessary to run install_packages first
 #' 
 #' @return an untrained Keras CNN with randomized params
@@ -281,15 +242,12 @@ add_dimension = function(array){
 #' @import devtools
 #' @import keras
 #' @import tensorflow
-
-
-build_model <- function(){
+build_model <- function(LEARNINGRATE = 0.001){
   
   model = keras_model_sequential()
   
   PADDING = "same"
   ACTIVATION = "relu"
-  LEARNINGRATE = 0.001
   DECAY = 0.000001
   
   model %>%
@@ -438,7 +396,7 @@ prob_event2d = function(event, other_events){
 #' @note inputting a key changes the output from matrix to list
 #' 
 #' @param timeseries a one-variable timeseries in vector form
-#' @param key optional input is wrapped in list with output wavelet transform
+#' @param key optional input is wrapped in a list with output wavelet transform
 #' 
 #' @return 128 by 64 matrix of wavelet power OR a list containing 1: wavelet matrix and 2: the input key
 #' 
@@ -454,7 +412,7 @@ wt_simple <- function(timeseries, key = NULL){
   IM = resize(wt.power,128,64)
   if(!is.null(key)){
     IM[[1]] = IM
-    IM[[2]] = key
+    IM[[2]] = collapse_key(expand_key(key))
   }
   IM
 }
@@ -464,17 +422,16 @@ wt_simple <- function(timeseries, key = NULL){
 #' Gives the 2D wavelet transform of a one variable timeseries
 #' 
 #' @param timeseries a one-variable timeseries in vector form
-#' @param keyseries a one-variable timeseries labeling each point in the main timeseries
 #' @param window_width width of analysis window measured in number of timeseries indices
 #' @param window_stride stride of analysis window measured in number of timeseries indices
+#' @param keyseries a one-variable timeseries labeling each point in the main timeseries
 #' @return 128 by 64 matrix of wavelet power OR a list with 1: wavelet matrix and 2: key vector
 #' 
 #' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
 #' \email{jaw3es@@virginia.edu}
 #' 
 #' @export
-
-wt_windowed = function(timeseries, keyseries = NULL, window_width, window_stride){
+wt_windowed = function(timeseries, window_width, window_stride, keyseries = NULL){
   
   n = length(timeseries)
   s = window_stride
@@ -486,7 +443,7 @@ wt_windowed = function(timeseries, keyseries = NULL, window_width, window_stride
   endex = index+w   
   
   imageset = array(dim = c(n_windows, 128, 64))
-  keys = array(0, dim = c(n_windows,2))
+  keys = array(0, dim = c(n_windows))
   
   for (i in 1:n_windows){
     
@@ -497,7 +454,7 @@ wt_windowed = function(timeseries, keyseries = NULL, window_width, window_stride
     if(!is.null(keyseries)){
       key_fragment = keyseries[index:endex]
       mode = round(mean(key_fragment))
-      keys[i,mode+1] = 1
+      keys[i] = mode
     }
     
     index = index+s
@@ -560,7 +517,6 @@ wt_windowed = function(timeseries, keyseries = NULL, window_width, window_stride
 #' res<-wt(t.series, times)
 #' 
 #' @importFrom stats fft
-
 wt_ns = function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.04, f0=1){
   #error checking
   wsyn:::errcheck_tsdat(times,t.series,"wt")
@@ -641,50 +597,13 @@ wt_ns = function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.04,
   }
 }
 
-#' March 18
-  ## change the key of things and retrain --> based on the domain
-  ## rerun the windowed analysis
-
-# 1. fixing key                   !
-# 2. running windowed analysis    ! 
-# 3. training
-# 4.keep documenting              !
-# 5. user functions               !
-
-# # 11
-# add_dimension()     not available to user
-# build_model()
-# classify()
-# install_packages()
-# predict()
-# prob_event2d()
-# prob_timeseries()
-# resize_images()
-# wt()
-# wt_windowed()
-# wt_ns()               not available to user
-# save_model()
-# load_model()
-# load_premade_model() <-- need to figure out how to do this
-# check_images
-
-## wrapper functions ## just one
-
-# timeseries + key -> wt() -> build_model() -> train_model() -> save_model()
-  # windowed or not 1 
-  # window parameters 2
-  # training parameters 5
-
-
-
-
 #' Produce trained model from images and their keys
 #' 
 #' Train a convolutional neural network from a labeled data set
 #' 
 #' @param imageset an N x W x H set of images with features for classification training
-#' @param keys an N by 2 logical matrix/array of 2-value keys corresponding to features in imageset
-#' @param model optionally input a pre-built model for more training 
+#' @param keys a vector binary keys/labels corresponding to features in imageset
+#' @param model input a model for a training
 #' @note not tested with non-logical keys
 #' 
 #' @return a trained cnn 
@@ -694,18 +613,14 @@ wt_ns = function(t.series, times, scale.min=2, scale.max.input=NULL, sigma=1.04,
 #'
 #' @export
 #' 
-train_model = function(wt_data, model = NULL, test_iterations = 500, train_test_ratio = 0.7, batch_size = 128){
-  
-  if(is.null(model)){
-    model = build_model()
-  }
+train_model = function(model, wt_data, test_iterations = 500, train_test_ratio = 0.7, batch_size = 128){
   
   imageset = check_imageset(wt_data[[1]])
-  keyset = check_keys(wt_data[[2]])
+  keyset = expand_key(wt_data[[2]])
   
   PREdata = NULL
   PREdata[[1]] = imageset
-  PREdata[[2]] = keyset
+  PREdata[[2]] = !keyset
   
   data = prep_data(PREdata,train_test_ratio)
 
@@ -725,54 +640,6 @@ train_model = function(wt_data, model = NULL, test_iterations = 500, train_test_
   print(accuracy)
   model
 }
-
-
-#' Dimension check a key array
-#' 
-#' Binds input with a negated self if input is 1-dimensional logical vector
-#' 
-#' @param keys an array containing labels for each image in an imageset, bound along 1st dimension
-#' 
-#' @return keys array in the proper form
-#' 
-#' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
-#' \email{jaw3es@@virginia.edu}
-#' 
-#' @examples
-#' one_dim_key = array(0,c(10,1))
-#' two_dim_key = check_keys(one_dim_key)
-#' 
-#' @export 
-#' 
-check_keys = function(keys){
-  
-  out = as.logical(keys)
-  if(sum( is.na(out) ) > 0){
-    stop("keys must contain only logical values")
-  }
-  
-  dims = dim(keys)
-  if(is.null(dims)){
-    warning("pairing logical key vector with its negated self to produce N by 2 array")
-    keys = cbind(!keys,keys) 
-  }
-  dims = dim(keys)
-  
-  if(length(dims) > 2){
-    stop("keys cannot be more than two columns")
-  }
-  if((dims[1] > 2) & (dims[2] > 2)){
-    stop("keys cannot be more than two columns")
-  }
-  
-  if(length(dims[2])>2){
-    warning("assuming key pairs are arranged in columns... converting to by-row")
-    keys = t(keys)
-  }
-  keys
-}
-
-
 
 #' Dimension check an image set
 #' 
@@ -821,7 +688,7 @@ check_imageset = function(imageset){
 #' 
 #' With or without a key set bound in a list
 #' 
-#' @param timeseries an array of timeseries bound by row; can include an ordered key vector attached by list where entry 1 is the timeseries array
+#' @param timeseries an array of timeseries bound by row; CAN include an ordered key vector attached by list where entry 1 is the timeseries array
 #' 
 #' @returna set of 128 by 64 images bound by dimension 1; will be in a list with keys if input was a list with keys
 #' 
@@ -833,15 +700,14 @@ check_imageset = function(imageset){
 #' 
 #' @export 
 wt <- function(ts_data){
-  
   cores = detectCores()
   c1 = makeCluster(cores[1]-1)
   registerDoParallel(c1)
   
   if(is.list(ts_data)){
-    keys = check_keys(ts_data[[2]])
+    keys = collapse_key(expand_key((ts_data[[2]])))
     timeseries = ts_data[[1]]
-    N = dim(keys)[1]
+    N = length(keys)
     
     images = array(dim = c(N,128,64))
     
@@ -853,7 +719,6 @@ wt <- function(ts_data){
       wt.power = Mod(wt$values^2)
       IM = resize(wt.power,128,64)
       images[i,,] = IM
-      print(i)
     }
     out = NULL
     out[[1]] = images
@@ -915,9 +780,6 @@ load_model = function(filename){
 
 #' Load Pre-Trained Model from File
 #' 
-#' Loads a specific model from a bank of pre-trained models
-#' 
-#' @param type either classify by "domain" or identify if there is a "transition"
 #' @return a pre-trained keras model
 #' 
 #' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
@@ -926,20 +788,9 @@ load_model = function(filename){
 #' @import keras
 #' @export
 
-load_premade_model = function(type){
-  t_filepath = "D:/Capstone/model-transition"
-  d_filepath = "D:/Capstone/model-domain"
-  model = NULL
-  if(type == "transition"){
-    model = load_model_tf(t_filepath)
-  } 
-  if(type == "domain"){
-    model = load_model_tf(d_filepath)
-  }
-  if ((type != "domain") & (type != "transition")){
-    error("Input is not a valid model type")
-  }
-  model
+load_premade_model = function(){
+  t_filepath = "C:/Users/rimcl/OneDrive/School/Capstone/github/Project/Example/sample_model"
+  model = load_model_tf(t_filepath)
 }
 
 #' Load Sample ImageSet and Keys
@@ -954,22 +805,30 @@ load_premade_model = function(type){
 #' 
 #' @export
 load_premade_data = function(n_samples){
-  filepath = "D:/Capstone/sample_ts_data"
+  filepath = "C:/Users/rimcl/OneDrive/School/Capstone/github/Project/Example/sample_ts_data"
   temp = readRDS(filepath)
   m = dim(temp[[1]])[1]
   
   if(n_samples>m){stop("n_samples must not exceed 400")}
   samps = sample(1:m,n_samples,replace=FALSE)
   timeset = temp[[1]][samps,]
-  keyset = temp[[2]][samps,]
+  keyset = temp[[2]][samps]
   out = NULL
   out[[1]] = timeset
   out[[2]] = keyset
   out
 }
 
-
-
+#' Prepare Data for Training
+#' 
+#' Separates data into training and testing sets
+#' 
+#' @param DATA a list containing image data and key data
+#' @param p_train proportion of data set to allocate for training
+#' 
+#' @author Ryan Taylor \email{rmt2dt@@virginia.edu}, Jonathan Walter 
+#' \email{jaw3es@@virginia.edu}
+#' 
 prep_data = function(DATA, p_train){
   
   images = DATA[[1]]
@@ -996,12 +855,6 @@ prep_data = function(DATA, p_train){
   test_x = array(dim=c(n_samples-n_train,128,64,1))
   test_y = array(dim=c(n_samples-n_train,2))
   
-  if(is.null(dim(keys))){
-    warning("keys should be sets of two-value pairs")
-    keys = cbind(!keys,keys)
-  }
-  
-  
   index=1
   for (i in i_train){
     train_x[index,,,1] = images[i,,,]
@@ -1025,134 +878,3 @@ prep_data = function(DATA, p_train){
   output
   
 }
-
-######################################################################
-# win_classify = function(model,image)      
-#   
-#       
-# win_classify_analyze = function(model, timeseries, time, windowed, w_width, w_step){
-#        
-#       if(is.null(w_width)|is.null(w_step)|is.null(step_index)) {stop("If doing windowed analysis, must define w_width, w_step, step_index")
-#       output = NULL
-#       for (i = 1:samples) {
-#         wtout = wt_windowed(ts_data,w.width,w.step,step_index)
-#         wtout = wtout[[1]]
-#         prediction = aperm(predict(model,wtout), c(3,2,1))
-#         abind(output,prediction,along = 1)
-#       }
-# }
-
-######################################################################3
-
-# raw_classify = function(model, images, time = NULL){
-#   require(EBImage)
-#   require(doParallel)
-#   require(keras)
-#   
-#   cores = detectCores()
-#   c1 = makeCluster(cores[1]-1)
-#   
-#   
-#   dimages = dim(images)
-#   registerDoParallel(c1)
-#   if(dimages[2] != 128 | dimages[3] != 64) {
-#     warning("images are wrong size... resizing to n by 128 by 64")
-#     temp = array(c(dimages[1],128,64))
-#     registerDoParallel(c1)
-#     foreach(i=1:dimages[1]) %dopar% {
-#       temp[i,,] = resize(images[i,,],128,64)
-#     }
-#     stopCluster(c1)
-#     images = temp
-#   }
-#   
-#   
-#   if (is.null(time)){time = 1:dimages[1]}
-#   if (dimages[1] != length(time)) {stop("time vector is not the same size as number of images")}
-#   
-#   output = predict(model,images)
-#   
-#   Time = time
-#   Absent = output[,1]
-#   Present = output[,2]
-#   
-#   result = data.frame(Time, Absent, Present)
-#   result
-# }
-# 
-# 
-
-
-
-
-# analyze_and_predict = function(model, ts_data, windowed = FALSE, w_width = NULL, w_step = NULL, step_index = NULL){
-#   require(keras)
-#   require(abind)
-#   
-#    cores = detectCores()
-#   c1 = makeCluster(cores[1]-1)
-#   
-#   if(TRUE) warning("REMINDER: ts_data should be a array of sample (row) by time (column)")
-#   
-#   samples = dim(ts_data)[1]
-#   images = array()
-#   
-#   if(windowed){
-#     if (samples > 100) warning("Windowed analysis of 100+ ts_data could take a while..."){}
-#     if(is.null(w_width)|is.null(w_step)|is.null(step_index)) stop("If doing windowed analysis, must define w_width, w_step, step_index"){}
-#     output = NULL
-#     for (i = 1:samples) {
-#       wtout = wt_windowed(ts_data,w.width,w.step,step_index)
-#       wtout = wtout[[1]]
-#       prediction = aperm(predict(model,wtout), c(3,2,1))
-#       abind(output,prediction,along = 1)
-#     }
-#   }
-#   
-#   if(!windowed){
-#     output = array(c(samples,2,1)) 
-#     
-#     registerDoParallel(c1)
-#     foreach(i=1:samples) %dopar%{
-#       wtout = wt(ts_data)
-#       prediction = aperm(predict(model,wtout), c(3,2))
-#       output(i,)
-#       
-#       
-#     }
-#     
-#     stopCluster(c1)
-#     
-#   }
-# 
-# ts_p= function(index){
-#   require(keras)
-#   
-#   key = readRDS(paste("windowed_key_",as.character(index),sep=""))
-#   images = readRDS(paste("windowed_wt_",as.character(index),sep=""))
-#   mod = load_model_tf("model-windowed-2020-02-29")
-#   
-#   images = images[1:131,,]
-#   key = key[1:131,]
-#   
-#   images = add_dimension(images)
-# 
-#   outputs = predict(mod, images)
-# 
-#   absent = outputs[,1]
-#   present = outputs[,2]
-#   
-#   key_ab = key[,1]
-#   key_pr = key[,2]
-#   
-#   prob = 1-prob_timeseries(outputs)
-#   
-#   ts = data.frame(prob, key1, key2, absent, present)
-#   ts
-# }
-# 
-# 
-# 
-# 
-# 
-
