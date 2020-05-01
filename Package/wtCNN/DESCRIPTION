@@ -1,19 +1,23 @@
 Package: wtCNN
-Title: What the Package Does (One Line, Title Case)
+Title: Time Series Regime Shift Detection Using Wavelets and Convolutional Neural Networks
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Ryan",
+           family = "Taylor",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
+           email = "rmt2dt@virginia.edu",
+    person(given = "Jonathan",
+           family = "Walter",
+           role = c("aut", "cre"),
+           email = "jaw3es@virginia.edu",
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+Description: wtCNN combines wavelet analysis with convolutional neural networks for detection of regime shifts in time series data. Wavelet power analysis is sensitive to multiple leading indicators of regime shifts, including changes in variance and autocorrelation, producing images of wavelet power as a function of time and timescale (frequency). Convolutional neural networks are adept at image classification. The package contains two main workflows: classifying whether a regime shift occurred in a whole time series; and a sliding-window analysis to detect impending regime shifts. The former was shown to have >90% accuracy in tests using simulated data; the latter is unproven. 
 Imports:
-	Emcdf,
-	abind,
-	devtools,
-	keras,
-	tensorflow
+     Emcdf,
+     abind,
+     devtools,
+     keras,
+     tensorflow
 Remotes:
 	bioc::EBImage,
 License: What license it uses
