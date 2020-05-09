@@ -55,8 +55,6 @@
 # load_premade_data()
 ############################################################
 
-setwd("C:/Users/rimcl/OneDrive/School/Capstone/github/Project")
-source("11-UserFunctions.R")
 install_packages()
 ts_data = load_premade_data(200)
 wt_data = wt(ts_data)
@@ -67,7 +65,8 @@ model = train_model(model, wt_data,test_iterations = 1000)
 images = wt_data[[1]]
 keys = wt_data[[2]]
 
-predict_stats(model, images, keys)
+predictions = predict(model,images)
+accuracy = predict_stats(model, images, keys)
 
 #################333
 

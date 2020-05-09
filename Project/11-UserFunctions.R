@@ -22,6 +22,8 @@
 #' @import tensorflow
 #' @import abind
 #' @import EBImage
+#' 
+#' @example
 
 predict = function(model,imageset, type = "category"){
   require(devtools)
